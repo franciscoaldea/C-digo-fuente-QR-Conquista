@@ -1,0 +1,11 @@
+kivy
+kivymd
+kivy-garden
+kivy_garden.zbarcam
+cython
+buildozer
+pyjnius
+jnius
+python3
+pillow
+setuptools
