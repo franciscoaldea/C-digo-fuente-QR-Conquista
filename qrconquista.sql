@@ -74,8 +74,8 @@ CREATE TABLE `tipos_de_usuario` (
 CREATE TABLE `usuario` (
   `nombre_usuario` varchar(20) DEFAULT NULL,
   `gmail` varchar(50) DEFAULT NULL,
-  `contraseña` varchar(20) DEFAULT NULL,
-  `tipo_usuario` varchar(20) DEFAULT NULL
+  `contrasea` varchar(20) DEFAULT NULL,
+  `tipo_usuanrio` varchar(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
