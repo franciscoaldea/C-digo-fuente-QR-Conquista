@@ -2,10 +2,10 @@
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Host: 127.0.0.1
--- Generation Time: Oct 28, 2025 at 01:54 AM
--- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
+-- Servidor: 127.0.0.1
+-- Tiempo de generación: 28-10-2025 a las 14:10:38
+-- Versión del servidor: 10.4.32-MariaDB
+-- Versión de PHP: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -18,13 +18,13 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `qrconquista`
+-- Base de datos: `qrconquista`
 --
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `aulas`
+-- Estructura de tabla para la tabla `aulas`
 --
 
 CREATE TABLE `aulas` (
@@ -36,7 +36,7 @@ CREATE TABLE `aulas` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `cursos`
+-- Estructura de tabla para la tabla `cursos`
 --
 
 CREATE TABLE `cursos` (
@@ -49,7 +49,7 @@ CREATE TABLE `cursos` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `cursos`
+-- Volcado de datos para la tabla `cursos`
 --
 
 INSERT INTO `cursos` (`id_curso`, `Turno`, `especialidad`, `año`, `division`, `horarios`) VALUES
@@ -58,7 +58,7 @@ INSERT INTO `cursos` (`id_curso`, `Turno`, `especialidad`, `año`, `division`, `
 -- --------------------------------------------------------
 
 --
--- Table structure for table `tipos_de_usuario`
+-- Estructura de tabla para la tabla `tipos_de_usuario`
 --
 
 CREATE TABLE `tipos_de_usuario` (
@@ -68,67 +68,74 @@ CREATE TABLE `tipos_de_usuario` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `usuario`
+-- Estructura de tabla para la tabla `usuario`
 --
 
 CREATE TABLE `usuario` (
   `nombre_usuario` varchar(20) DEFAULT NULL,
   `gmail` varchar(50) DEFAULT NULL,
-  `contrasea` varchar(20) DEFAULT NULL,
-  `tipo_usuanrio` varchar(20) DEFAULT NULL
+  `contrasena` varchar(20) DEFAULT NULL,
+  `tipo_usuario` varchar(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Indexes for dumped tables
+-- Volcado de datos para la tabla `usuario`
+--
+
+INSERT INTO `usuario` (`nombre_usuario`, `gmail`, `contrasena`, `tipo_usuario`) VALUES
+('fran', NULL, '123', NULL);
+
+--
+-- Índices para tablas volcadas
 --
 
 --
--- Indexes for table `aulas`
+-- Indices de la tabla `aulas`
 --
 ALTER TABLE `aulas`
   ADD PRIMARY KEY (`id_aula`),
   ADD KEY `id_curso` (`id_curso`);
 
 --
--- Indexes for table `cursos`
+-- Indices de la tabla `cursos`
 --
 ALTER TABLE `cursos`
   ADD PRIMARY KEY (`id_curso`);
 
 --
--- Indexes for table `tipos_de_usuario`
+-- Indices de la tabla `tipos_de_usuario`
 --
 ALTER TABLE `tipos_de_usuario`
   ADD PRIMARY KEY (`tipo_usuario`);
 
 --
--- Indexes for table `usuario`
+-- Indices de la tabla `usuario`
 --
 ALTER TABLE `usuario`
   ADD KEY `tipo_usuario` (`tipo_usuario`);
 
 --
--- AUTO_INCREMENT for dumped tables
+-- AUTO_INCREMENT de las tablas volcadas
 --
 
 --
--- AUTO_INCREMENT for table `cursos`
+-- AUTO_INCREMENT de la tabla `cursos`
 --
 ALTER TABLE `cursos`
   MODIFY `id_curso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
--- Constraints for dumped tables
+-- Restricciones para tablas volcadas
 --
 
 --
--- Constraints for table `aulas`
+-- Filtros para la tabla `aulas`
 --
 ALTER TABLE `aulas`
   ADD CONSTRAINT `aulas_ibfk_1` FOREIGN KEY (`id_curso`) REFERENCES `cursos` (`id_curso`);
 
 --
--- Constraints for table `usuario`
+-- Filtros para la tabla `usuario`
 --
 ALTER TABLE `usuario`
   ADD CONSTRAINT `usuario_ibfk_1` FOREIGN KEY (`tipo_usuario`) REFERENCES `tipos_de_usuario` (`tipo_usuario`);
