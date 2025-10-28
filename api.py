@@ -54,5 +54,26 @@ def get_aulas():
     rows = cursor.fetchall()
     return jsonify(rows)
 
+# DETALLE DE AULA POR ID
+@app.route("/aula/<int:id_aula>", methods=["GET"])
+def get_aula(id_aula):
+    cursor.execute("SELECT * FROM Aulas WHERE id_aula = %s", (id_aula,))
+    aula = cursor.fetchone()
+    if aula:
+        return jsonify(aula)
+    else:
+        return jsonify({"error": "Aula no encontrada"}), 404
+
+# DETALLE DE CURSO POR ID
+@app.route("/curso/<int:id_curso>", methods=["GET"])
+def get_curso(id_curso):
+    cursor.execute("SELECT * FROM Cursos WHERE id_curso = %s", (id_curso,))
+    curso = cursor.fetchone()
+    if curso:
+        return jsonify(curso)
+    else:
+        return jsonify({"error": "Curso no encontrado"}), 404
+    
+    
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
