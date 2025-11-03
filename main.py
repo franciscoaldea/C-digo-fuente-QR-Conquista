@@ -11,7 +11,7 @@ from kivy_garden.zbarcam import ZBarCam
 import requests
 import qrcode
 
-API_URL = "http://172.29.193.115:5000"
+API_URL = "http://localhost:5000"
 
 
 class MainScreen(Screen):
@@ -83,7 +83,7 @@ class MainScreen(Screen):
     def show_login_dialog(self):
         if not self.dialog:
             self.username = MDTextField(hint_text="Usuario", required=True)
-            self.password = MDTextField(hint_text="Contraseña", password=True, required=True)
+            self.password = MDTextField(hint_text="contrasena", password=True, required=True)
 
             self.dialog = MDDialog(
                 title="Iniciar sesión (Admin)",
@@ -112,7 +112,7 @@ class MainScreen(Screen):
     def check_login(self):
         data = {
             "nombre_usuario": self.username.text,
-            "contraseña": self.password.text
+            "contrasena": self.password.text
         }
 
         try:
@@ -124,7 +124,7 @@ class MainScreen(Screen):
                 self.label.text = f"Bienvenido, {user['usuario']['nombre_usuario']}"
                 self.cargar_aulas()  # recarga las aulas con botón de editar
             else:
-                self.label.text = "Usuario o contraseña incorrectos"
+                self.label.text = "Usuario o contrasena incorrectos"
         except Exception as e:
             self.label.text = f"Error de conexión: {e}"
 
