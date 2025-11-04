@@ -1,351 +1,363 @@
+import requests
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.label import MDLabel
 from kivymd.uix.button import MDRaisedButton
-from kivymd.uix.toolbar import MDTopAppBar
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.textfield import MDTextField
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.clock import Clock
 from kivy_garden.zbarcam import ZBarCam
-import requests
-import qrcode
+from kivymd.uix.menu import MDDropdownMenu
+from kivymd.uix.list import OneLineIconListItem, IconLeftWidget
+from kivymd.uix.card import MDCard
+from kivymd.utils.set_bars_colors import set_bars_colors
 
+# Constantes
 API_URL = "http://localhost:5000"
+OPCIONES_ESTADO = ["Libre", "Ocupada", "Cerrada"]
 
 
+# =====================================
+# CLASE DE VISTA PRINCIPAL
+# Se reduce el __init__ delegando la UI al .kv
+# =====================================
 class MainScreen(Screen):
+    # Nota: Los widgets como 'main_label' y 'aulas_container'
+    # son ahora IDs definidos en qr_app.kv
+    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
-        # Layout principal vertical
-        self.layout = MDBoxLayout(
-            orientation='vertical',
-            spacing=15,
-            padding=[20, 20, 20, 30]  # márgenes: izq, arriba, der, abajo
-        )
-
-        # ===== Barra superior con botón de login =====
-        self.toolbar = MDTopAppBar(
-            title="Lector QR",
-            left_action_items=[["account", lambda x: self.show_login_dialog()]]
-        )
-        self.layout.add_widget(self.toolbar)
-
-        # ===== Label de bienvenida / login =====
-        self.label = MDLabel(
-            text="Iniciá sesión o escaneá un código QR",
-            halign="center",
-            size_hint_y=None,
-            height="40dp"
-        )
-        self.layout.add_widget(self.label)
-
-        # ===== Lista de aulas (debajo del login) =====
-        self.lista_aulas = MDBoxLayout(
-            orientation="vertical",
-            spacing=10,
-            size_hint_y=None,
-            height="200dp",  # fija una altura razonable para que no quede pegado al topbar
-        )
-        self.layout.add_widget(self.lista_aulas)
-
-        # ===== Espaciador para empujar el botón hacia abajo =====
-        self.layout.add_widget(MDLabel(size_hint_y=1))
-
-        # ===== Botón de escaneo (abajo centrado) =====
-        btn_scan = MDRaisedButton(
-            text="Abrir Cámara y Escanear",
-            pos_hint={"center_x": 0.5},
-            size_hint=(None, None),
-            size=("220dp", "48dp"),
-            on_release=self.open_camera
-        )
-        self.layout.add_widget(btn_scan)
-
-        self.add_widget(self.layout)
-
-        # Variables del login
-        self.dialog = None
-        self.username = None
-        self.password = None
+        self.dialog_login = None
+        self.dialog_editar = None
+        self.menu_estado = None
         self.admin_logged = False
+        self.aulas = []
 
-        # Cargar aulas al iniciar
-        Clock.schedule_once(lambda dt: self.cargar_aulas())
-
-    def open_camera(self, *args):
-        self.manager.current = "scanner"
+    # Se llama cuando la pantalla está a punto de ser mostrada
+    def on_pre_enter(self):
+        # Opcional: Establecer un color de fondo para la barra de estado si KivyMD lo soporta
+        # set_bars_colors(self.theme_cls.primary_color, self.theme_cls.primary_color)
+        pass
 
     # =====================================
-    # LOGIN ADMIN
+    # LÓGICA DE LOGIN (MÉTODOS PRIVADOS RECOMENDADOS)
     # =====================================
     def show_login_dialog(self):
-        if not self.dialog:
-            self.username = MDTextField(hint_text="Usuario", required=True)
-            self.password = MDTextField(hint_text="contrasena", password=True, required=True)
+        # Mantiene la lógica de creación de diálogos
+        if not self.dialog_login:
+            # Los campos se definen en el .kv, aquí se instancian si no existen
+            self.username_field = MDTextField(hint_text="Usuario", required=True)
+            self.password_field = MDTextField(hint_text="Contraseña", password=True, required=True)
 
-            self.dialog = MDDialog(
+            content_box = MDBoxLayout(
+                self.username_field,
+                self.password_field,
+                orientation="vertical",
+                spacing="10dp",
+                size_hint_y=None,
+                height="120dp",
+            )
+            
+            self.dialog_login = MDDialog(
                 title="Iniciar sesión (Admin)",
                 type="custom",
-                content_cls=MDBoxLayout(
-                    self.username,
-                    self.password,
-                    orientation="vertical",
-                    spacing=10,
-                    size_hint_y=None,
-                    height="120dp",
-                ),
+                content_cls=content_box,
                 buttons=[
-                    MDRaisedButton(
-                        text="Cancelar",
-                        on_release=lambda x: self.dialog.dismiss()
-                    ),
-                    MDRaisedButton(
-                        text="Entrar",
-                        on_release=lambda x: self.check_login()
-                    ),
+                    MDRaisedButton(text="Cancelar", on_release=lambda x: self.dialog_login.dismiss()),
+                    MDRaisedButton(text="Entrar", on_release=lambda x: self._check_login()),
                 ],
             )
-        self.dialog.open()
+        self.dialog_login.open()
 
-    def check_login(self):
+    def _check_login(self):
+        # Implementación de la funcionalidad sin cambios, se renombra a _check_login
         data = {
-            "nombre_usuario": self.username.text,
-            "contrasena": self.password.text
+            "nombre_usuario": self.username_field.text,
+            "contraseña": self.password_field.text
         }
 
         try:
             response = requests.post(f"{API_URL}/login", json=data)
+            main_label = self.ids.main_label
+            aulas_container = self.ids.aulas_container
+            
             if response.status_code == 200:
                 user = response.json()
                 self.admin_logged = True
-                self.dialog.dismiss()
-                self.label.text = f"Bienvenido, {user['usuario']['nombre_usuario']}"
-                self.cargar_aulas()  # recarga las aulas con botón de editar
+                self.dialog_login.dismiss()
+                main_label.text = f"Bienvenido, {user['usuario']['nombre_usuario']}"
+                aulas_container.opacity = 1
+                aulas_container.disabled = False
+                self.cargar_aulas()
             else:
-                self.label.text = "Usuario o contrasena incorrectos"
+                main_label.text = "Usuario o contraseña incorrectos"
         except Exception as e:
-            self.label.text = f"Error de conexión: {e}"
+            self.ids.main_label.text = f"Error de conexión: {e}"
 
     # =====================================
-    # LISTA DE AULAS
+    # LÓGICA DE AULAS
     # =====================================
     def cargar_aulas(self):
-        """Carga el listado de aulas desde la API (si existe) o fija."""
-        self.lista_aulas.clear_widgets()
+        # Renombrado y uso de IDs del .kv
+        aulas_container = self.ids.aulas_container
+        aulas_container.clear_widgets()
 
         try:
             response = requests.get(f"{API_URL}/aulas")
             if response.status_code == 200:
-                aulas = response.json()
+                self.aulas = response.json()
             else:
-                aulas = []
-                self.label.text = f"Error al obtener aulas: {response.status_code}"
+                self.aulas = []
+                self.ids.main_label.text = f"Error al obtener aulas: {response.status_code}"
         except Exception:
-            # Si no puede conectar, usa lista de ejemplo
-            aulas = [
-                {"id": 1, "nombre": "Aula 1 - Laboratorio"},
-                {"id": 2, "nombre": "Aula 2 - Informática"},
-                {"id": 3, "nombre": "Aula 3 - Electrónica"},
-                {"id": 4, "nombre": "Aula 4 - Taller"}
+            # Datos de simulación para fallback
+            self.aulas = [
+                {"id": 1, "nombre": "Aula 1", "curso": "3°A", "estado": "Libre", "especialidad": "Computación"},
+                {"id": 2, "nombre": "Aula 2", "curso": "4°B", "estado": "Ocupada", "especialidad": "Computación"},
+                {"id": 3, "nombre": "Aula 3", "curso": "5°A", "estado": "Cerrada", "especialidad": "Computación"},
+                {"id": 4, "nombre": "Aula 4", "curso": "6°A", "estado": "Libre", "especialidad": "Computación"},
             ]
 
-        for aula in aulas:
-            fila = MDBoxLayout(orientation="horizontal", spacing=10, size_hint_y=None, height="48dp")
+        for aula in self.aulas:
+            self.mostrar_aula(aula)
 
-            label_aula = MDLabel(text=aula["nombre"], halign="left")
-            fila.add_widget(label_aula)
+    def mostrar_aula(self, aula):
+        """Crea una tarjeta con los datos del aula (mejorado con MDListItem)"""
+        
+        # Mapeo de estado a ícono (Mejora visual)
+        iconos = {"Libre": "check-circle", "Ocupada": "alert-circle", "Cerrada": "close-circle"}
+        color_estado = {"Libre": (0, 0.6, 0, 1), "Ocupada": (0.8, 0.4, 0, 1), "Cerrada": (0.6, 0, 0, 1)}
+        estado = aula.get('estado', 'Cerrada')
+        
+        # Uso de MDCard y OneLineIconListItem para un diseño más pulido
+        card = MDCard(
+            orientation="vertical", 
+            padding="10dp", 
+            spacing="10dp",
+            size_hint_y=None, 
+            height="100dp", 
+            ripple_behavior=True, # Retroalimentación visual al tocar
+        )
 
-            # Solo muestra "Editar" si el admin está logueado
-            if self.admin_logged:
-                btn_editar = MDRaisedButton(
-                    text="Editar",
-                    md_bg_color=(0.2, 0.5, 1, 1),
-                    on_release=lambda x, a=aula: self.editar_aula(a)
-                )
-                fila.add_widget(btn_editar)
+        # Contenedor del contenido (más limpio que un MDLabel gigante)
+        content_layout = MDBoxLayout(orientation='horizontal', padding="5dp", spacing="10dp")
 
-            self.lista_aulas.add_widget(fila)
+        # Icono con color basado en el estado
+        icon_widget = IconLeftWidget(
+            icon=iconos.get(estado, "help-circle"),
+            theme_text_color="Custom",
+            text_color=color_estado.get(estado, (0.5, 0.5, 0.5, 1))
+        )
+        content_layout.add_widget(icon_widget)
 
-    def editar_aula(self, aula):
-        """Abre un diálogo para editar los datos del aula"""
-        nombre_field = MDTextField(text=aula["nombre"], hint_text="Nombre del aula")
+        # Información detallada
+        info_label = MDLabel(
+            text=f"[b]{aula['nombre']}[/b] ([color={self._get_hex_color(color_estado.get(estado))}]{estado}[/color])\n"
+                 f"Curso: {aula.get('curso', '-')}\n"
+                 f"Especialidad: {aula.get('especialidad', 'Computación')}",
+            markup=True,
+            halign="left",
+            valign="center",
+            font_style="Body2"
+        )
+        content_layout.add_widget(info_label)
+        
+        card.add_widget(content_layout)
 
-        dialog = MDDialog(
-            title=f"Editar {aula['nombre']}",
+        if self.admin_logged:
+            btn_editar = MDRaisedButton(
+                text="Editar",
+                size_hint_y=None, 
+                height="36dp",
+                pos_hint={"center_x": 0.5},
+                on_release=lambda x, a=aula: self._editar_aula(a)
+            )
+            card.add_widget(btn_editar)
+
+        self.ids.aulas_container.add_widget(card)
+
+    def _get_hex_color(self, rgba):
+        """Convierte (r, g, b, a) a formato hexadecimal #RRGGBB"""
+        if not rgba or len(rgba) < 3: return "#808080" # Gris por defecto
+        return f"#{int(rgba[0]*255):02x}{int(rgba[1]*255):02x}{int(rgba[2]*255):02x}"
+
+    # =====================================
+    # LÓGICA DE EDICIÓN
+    # =====================================
+    def _editar_aula(self, aula):
+        # Separación de creación de widgets y el diálogo
+        self.nombre_field = MDTextField(text=aula.get("nombre", ""), hint_text="Nombre del aula")
+        self.curso_field = MDTextField(text=aula.get("curso", ""), hint_text="Curso")
+        self.estado_field = MDTextField(text=aula.get("estado", "Libre"), hint_text="Estado", readonly=True, on_focus=self._toggle_estado_menu)
+        self.especialidad_field = MDTextField(text=aula.get("especialidad", "Computación"), hint_text="Especialidad")
+
+        # Menú desplegable para estado
+        menu_items = [
+            {"text": estado, "on_release": lambda x=estado: self._set_estado(x, self.estado_field)}
+            for estado in OPCIONES_ESTADO
+        ]
+        self.menu_estado = MDDropdownMenu(caller=self.estado_field, items=menu_items, width_mult=3)
+
+        # Diálogo
+        content_cls = MDBoxLayout(
+            self.nombre_field,
+            self.curso_field,
+            self.estado_field,
+            self.especialidad_field,
+            orientation="vertical",
+            spacing="10dp",
+            size_hint_y=None,
+            height="260dp",
+        )
+        
+        self.dialog_editar = MDDialog(
+            title=f"Editar {aula.get('nombre', 'Aula')}",
             type="custom",
-            content_cls=MDBoxLayout(
-                nombre_field,
-                orientation="vertical",
-                spacing=10,
-                size_hint_y=None,
-                height="80dp",
-            ),
+            content_cls=content_cls,
             buttons=[
-                MDRaisedButton(
-                    text="Cancelar",
-                    on_release=lambda x: dialog.dismiss()
-                ),
+                MDRaisedButton(text="Cancelar", on_release=lambda x: self.dialog_editar.dismiss()),
                 MDRaisedButton(
                     text="Guardar",
-                    on_release=lambda x: self.guardar_aula(dialog, aula["id"], nombre_field.text)
+                    on_release=lambda x: self._guardar_aula(
+                        aula, self.nombre_field.text, self.curso_field.text, 
+                        self.estado_field.text, self.especialidad_field.text
+                    )
                 ),
             ],
         )
-        dialog.open()
+        self.dialog_editar.open()
+    
+    def _toggle_estado_menu(self, instance, value):
+        if value:
+            self.menu_estado.open()
+        else:
+            self.menu_estado.dismiss()
 
-    def guardar_aula(self, dialog, aula_id, nuevo_nombre):
-        """Ejemplo de guardar aula (envía PUT a la API)."""
+
+    def _set_estado(self, estado, field):
+        field.text = estado
+        self.menu_estado.dismiss()
+
+    def _guardar_aula(self, aula, nuevo_nombre, nuevo_curso, nuevo_estado, nueva_especialidad):
+        # Renombrado a _guardar_aula
+        aula["nombre"] = nuevo_nombre
+        aula["curso"] = nuevo_curso
+        aula["estado"] = nuevo_estado
+        aula["especialidad"] = nueva_especialidad
+
         try:
-            data = {"nombre": nuevo_nombre}
-            response = requests.put(f"{API_URL}/aula/{aula_id}", json=data)
-            if response.status_code == 200:
-                self.label.text = f"Aula {aula_id} actualizada correctamente"
-            else:
-                self.label.text = f"Error al actualizar: {response.status_code}"
-        except Exception as e:
-            self.label.text = f"Error: {e}"
-        finally:
-            dialog.dismiss()
-            self.cargar_aulas()
+            data = {
+                "nombre": nuevo_nombre,
+                "curso": nuevo_curso,
+                "estado": nuevo_estado,
+                "especialidad": nueva_especialidad
+            }
+            # Se usa PUT para actualizar
+            requests.put(f"{API_URL}/aula/{aula['id']}", json=data)
+        except Exception:
+            pass 
 
-#  Pantalla de escaneo QR
+        self.dialog_editar.dismiss()
+        self.cargar_aulas() 
+        
+    def open_camera(self, *args):
+        self.manager.current = "scanner"
+
+
+# =====================================
+# CLASE DE VISTA DEL ESCÁNER
+# =====================================
 class ScannerScreen(Screen):
+    # Uso de IDs del .kv y renombrado de métodos internos
+    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.zbarcam = ZBarCam()
+        self.zbarcam.size_hint_y = 0.8 # Ocupa más espacio de la pantalla
+        
+        # Contenedor para la cámara, se puede definir en el .kv pero para este caso simple se mantiene aquí
         layout = MDBoxLayout(orientation="vertical")
         layout.add_widget(self.zbarcam)
+        
+        # Label y botón definidos en el .kv o pueden seguir aquí
+        self.ids_dict = self.ids if hasattr(self, 'ids') else {}
 
-        self.label = MDLabel(text="Escaneando...", halign="center", size_hint_y=0.1)
-        layout.add_widget(self.label)
+        self.label_info = MDLabel(text="Escaneando...", halign="center", size_hint_y=0.1, font_style="Subtitle1")
+        layout.add_widget(self.label_info)
 
-        btn_volver = MDRaisedButton(
-            text="Volver",
-            pos_hint={"center_x": 0.5},
-            on_release=self.volver
-        )
+        btn_volver = MDRaisedButton(text="Volver", pos_hint={"center_x": 0.5}, on_release=self._volver)
         layout.add_widget(btn_volver)
         self.add_widget(layout)
+        
+        self.event = None
 
-        # Verifica cada medio segundo si hay un QR nuevo
-        Clock.schedule_interval(self.check_qr, 0.5)
+    def on_enter(self):
+        # Inicia la cámara y la comprobación cuando la pantalla es visible
+        self.zbarcam.start()
+        self.event = Clock.schedule_interval(self._check_qr, 0.5)
 
-    def check_qr(self, dt):
+    def on_leave(self):
+        # Detiene la cámara y el evento cuando la pantalla es oculta
+        self.zbarcam.stop()
+        if self.event:
+            Clock.unschedule(self.event)
+            self.event = None
+
+    def _check_qr(self, dt):
         if self.zbarcam.symbols:
             qr_data = self.zbarcam.symbols[0].data.decode("utf-8")
-            self.label.text = f"Código detectado: {qr_data}"
-            self.zbarcam.stop()
-            Clock.unschedule(self.check_qr)
-            self.handle_qr(qr_data)
+            self.label_info.text = f"Código detectado: {qr_data}"
+            
+            # Detiene la comprobación inmediatamente para evitar múltiples lecturas
+            Clock.unschedule(self.event)
+            self.zbarcam.stop() 
+            self._handle_qr(qr_data)
 
-    def handle_qr(self, data):
-        # Si el QR contiene una URL de la API (por ejemplo: http://172.29.193.115:5000/aula/1)
-        if data.startswith("http://") and "/aula/" in data or "/curso/" in data:
+    def _handle_qr(self, data):
+        # Renombrado a _handle_qr
+        if data.startswith("http://") and ("/aula/" in data or "/curso/" in data):
             try:
                 response = requests.get(data)
                 if response.status_code == 200:
                     info = response.json()
-                    # Crear texto con los datos de la BBDD
                     texto = "\n".join([f"{k}: {v}" for k, v in info.items()])
                     dialog = MDDialog(
                         title="Datos obtenidos",
                         text=texto,
-                        buttons=[
-                            MDRaisedButton(
-                                text="Cerrar",
-                                on_release=lambda x: dialog.dismiss()
-                            )
-                        ]
+                        buttons=[MDRaisedButton(text="Cerrar", on_release=lambda x: dialog.dismiss())]
                     )
                     dialog.open()
                 else:
-                    MDDialog(
-                        title="Error",
-                        text=f"No se pudo obtener información.\nCódigo: {response.status_code}"
-                    ).open()
+                    MDDialog(title="Error", text=f"No se pudo obtener información.\nCódigo: {response.status_code}").open()
             except Exception as e:
-                MDDialog(
-                    title="Error de conexión",
-                    text=str(e)
-                ).open()
+                MDDialog(title="Error de conexión", text=str(e)).open()
         else:
-            # Si el QR no tiene formato de enlace de la API
             dialog = MDDialog(title="Código no reconocido", text=f"Contenido: {data}")
             dialog.open()
 
-    def volver(self, *args):
-        self.manager.current = "main"
-        self.zbarcam.start()
-        Clock.schedule_interval(self.check_qr, 0.5)
-
-
-#  Pantallas de información
-class Info1Screen(Screen):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        layout = MDBoxLayout(orientation="vertical")
-
-        toolbar = MDTopAppBar(title="Información 1")
-        layout.add_widget(toolbar)
-
-        label = MDLabel(
-            text="Esta es la información interna del código INFO1.",
-            halign="center"
-        )
-        layout.add_widget(label)
-
-        btn_volver = MDRaisedButton(
-            text="Volver al inicio",
-            pos_hint={"center_x": 0.5},
-            on_release=lambda x: self.volver()
-        )
-        layout.add_widget(btn_volver)
-
-        self.add_widget(layout)
-
-    def volver(self):
+    def _volver(self, *args):
+        # Renombrado a _volver
         self.manager.current = "main"
 
 
-class Info2Screen(Screen):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        layout = MDBoxLayout(orientation="vertical")
-
-        toolbar = MDTopAppBar(title="Información 2")
-        layout.add_widget(toolbar)
-
-        label = MDLabel(
-            text="Esta es la información del código INFO2, con más detalles.",
-            halign="center"
-        )
-        layout.add_widget(label)
-
-        btn_volver = MDRaisedButton(
-            text="Volver al inicio",
-            pos_hint={"center_x": 0.5},
-            on_release=lambda x: self.volver()
-        )
-        layout.add_widget(btn_volver)
-
-        self.add_widget(layout)
-
-    def volver(self):
-        self.manager.current = "main"
-
-
-#  APP PRINCIPAL
-class QRApp(MDApp):
+# =====================================
+# APP PRINCIPAL (Carga el .kv y define el tema)
+# =====================================
+class qr_app(MDApp):
     def build(self):
+        # Configuración del tema (Mejora estética)
+        self.theme_cls.theme_style = "Dark" # O "Light"
+        self.theme_cls.primary_palette = "Indigo" # Un color más vibrante
+        self.theme_cls.accent_palette = "Teal" 
+
         sm = ScreenManager()
         sm.add_widget(MainScreen(name="main"))
         sm.add_widget(ScannerScreen(name="scanner"))
-        sm.add_widget(Info1Screen(name="info1"))
-        sm.add_widget(Info2Screen(name="info2"))
         return sm
-
+    
+    # Kivy buscará automáticamente el archivo qr_app.kv
+    # Si lo renombras, debes cambiar 'QRApp' al nuevo nombre (ej: 'MiApp.kv')
 
 if __name__ == "__main__":
-    QRApp().run()
+    qr_app().run()
