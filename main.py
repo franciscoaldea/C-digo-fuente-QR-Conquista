@@ -132,60 +132,54 @@ class MainScreen(Screen):
 
     # -------------------------
     # REPRESENTACIÓN DE UNA AULA
-    # -------------------------
     def mostrar_aula(self, aula):
-        """Crea una tarjeta con la información de un aula."""
-        # Mapas para iconos y colores según estado
-        iconos = {"Libre": "check-circle", "Ocupada": "alert-circle", "Cerrada": "close-circle"}  # Iconos por estado
-        color_estado = {"Libre": (0, 0.6, 0, 1), "Ocupada": (0.8, 0.4, 0, 1), "Cerrada": (0.6, 0, 0, 1)}  # RGBA por estado
-        estado = aula.get('estado', 'Cerrada')       # Obtener estado de aula, por defecto "Cerrada"
+        iconos = {"Libre": "check-circle", "Ocupada": "alert-circle", "Cerrada": "close-circle"}
+        color_estado = {"Libre": (0, 0.6, 0, 1), "Ocupada": (0.8, 0.4, 0, 1), "Cerrada": (0.6, 0, 0, 1)}
+        estado = aula.get('estado', 'Cerrada')
 
-        # Crear tarjeta contenedora (MDCard) con configuración visual
         card = MDCard(
-            orientation="vertical",                   # Orientación vertical interna
-            padding="10dp",                           # Padding interno
-            spacing="10dp",                           # Espacio entre hijos
-            size_hint_y=None,                         # altura fija en dp
-            height="100dp",                           # altura de la tarjeta
-            ripple_behavior=True                       # efecto ripple al tocar
+            orientation="vertical",
+            padding="10dp",
+            spacing="10dp",
+            size_hint_y=None,
+            height="120dp",
+            ripple_behavior=True
         )
 
-        # Layout horizontal para el contenido principal de la tarjeta
         content_layout = MDBoxLayout(orientation='horizontal', padding="5dp", spacing="10dp")
 
-        # Widget de icono a la izquierda que indica el estado
         icon_widget = IconLeftWidget(
-            icon=iconos.get(estado, "help-circle"),  # Icono según el estado o por defecto
-            theme_text_color="Custom",                # Usar color personalizado
-            text_color=color_estado.get(estado, (0.5, 0.5, 0.5, 1))  # Color del icono según mapa
+            icon=iconos.get(estado, "help-circle"),
+            theme_text_color="Custom",
+            text_color=color_estado.get(estado, (0.5, 0.5, 0.5, 1))
         )
-        content_layout.add_widget(icon_widget)       # Agrega el icono al layout horizontal
+        content_layout.add_widget(icon_widget)
 
-        # Label con información de la aula (nombre, estado, curso, especialidad)
         info_label = MDLabel(
-            text=f"[b]{aula['nombre']}[/b] ([color={self._get_hex_color(color_estado.get(estado))}]{estado}[/color])\n"
-                 f"Curso: {aula.get('curso', '-')}\n"
-                 f"Especialidad: {aula.get('especialidad', 'Computación')}",  # Texto formado con markup
-            markup=True,                              # Habilitar markup para negritas y colores
-            halign="left",                            # Alineación horizontal a la izquierda
-            valign="center",                          # Alineación vertical centrada
-            font_style="Body2"                        # Estilo de fuente predefinido
+            text=(
+                f"[b]{aula['nombre']}[/b] ([color={self._get_hex_color(color_estado.get(estado))}]{estado}[/color])\n"
+                f"Curso: {aula.get('curso', '-')}\n"
+                f"Turno: {aula.get('turno', '-')}\n"
+                f"Especialidad: {aula.get('especialidad', '-')}"
+            ),
+            markup=True,
+            halign="left",
+            valign="center",
+            font_style="Body2"
         )
-        content_layout.add_widget(info_label)        # Añadir label al layout horizontal
-        card.add_widget(content_layout)              # Añadir layout a la tarjeta
+        content_layout.add_widget(info_label)
+        card.add_widget(content_layout)
 
-        # Si el admin está logueado, mostrar botón "Editar"
         if self.admin_logged:
             btn_editar = MDRaisedButton(
-                text="Editar",                       # Texto del botón
-                size_hint_y=None,                    # Altura fija
-                height="36dp",                       # Altura específica
-                pos_hint={"center_x": 0.5},          # Centrado horizontal
-                on_release=lambda x, a=aula: self._editar_aula(a)  # Al soltar, abrir edición para esa aula
+                text="Editar",
+                size_hint_y=None,
+                height="36dp",
+                pos_hint={"center_x": 0.5},
+                on_release=lambda x, a=aula: self._editar_aula(a)
             )
-            card.add_widget(btn_editar)             # Agregar el botón a la tarjeta
+            card.add_widget(btn_editar)
 
-        # Finalmente agregar la tarjeta completa al contenedor de la interfaz
         self.ids.aulas_container.add_widget(card)
 
     def _get_hex_color(self, rgba):
@@ -394,61 +388,52 @@ class ScannerScreen(Screen):
 
 # =========================
 # CLASE DE VISTA DE INFORMACIÓN DE AULA
-# =========================
 class AulaInfoScreen(Screen):
     """Muestra la información de un aula después de escanear un código QR."""
 
     def __init__(self, aula_data=None, **kwargs):
-        super().__init__(**kwargs)                    # Inicializar Screen base
-        self.aula_data = aula_data or {}              # Guardar datos del aula o un dict vacío
+        super().__init__(**kwargs)
+        self.aula_data = aula_data or {}
 
-        # Layout principal de la pantalla de info
         layout = MDBoxLayout(orientation="vertical", padding="20dp", spacing="15dp")
 
-        # Título de la pantalla
-        self.label_titulo = MDLabel(
-            text="Información del Aula",
-            halign="center",
-            font_style="H5"
-        )
-        layout.add_widget(self.label_titulo)          # Agrega el título al layout
+        self.label_titulo = MDLabel(text="Información del Aula", halign="center", font_style="H5")
+        layout.add_widget(self.label_titulo)
 
-        # Label que mostrará los detalles del aula (se actualiza en on_pre_enter)
         self.label_info = MDLabel(
             halign="left",
             valign="center",
             font_style="Body1",
             markup=True
         )
-        layout.add_widget(self.label_info)            # Añade el label de información al layout
+        layout.add_widget(self.label_info)
 
-        # Botón para volver a la pantalla principal
         btn_volver = MDRaisedButton(
             text="Volver",
             pos_hint={"center_x": 0.5},
             on_release=self.volver_main
         )
-        layout.add_widget(btn_volver)                 # Añade el botón al layout
+        layout.add_widget(btn_volver)
 
-        self.add_widget(layout)                       # Añade el layout completo a la pantalla
+        self.add_widget(layout)
 
     def on_pre_enter(self):
         """Actualiza la información antes de mostrar la pantalla."""
-        if not self.aula_data:                        # Si no hay datos, mostrar mensaje adecuado
+        if not self.aula_data:
             self.label_info.text = "No hay datos disponibles."
             return
 
-        # Formatear y asignar el texto con los datos del aula (uso de markup para negritas)
         self.label_info.text = (
             f"[b]Nombre:[/b] {self.aula_data.get('nombre', '-')}\n"
             f"[b]Curso:[/b] {self.aula_data.get('curso', '-')}\n"
             f"[b]Estado:[/b] {self.aula_data.get('estado', '-')}\n"
-            f"[b]Especialidad:[/b] {self.aula_data.get('especialidad', '-')}"
+            f"[b]Especialidad:[/b] {self.aula_data.get('especialidad', '-')}\n"
+            f"[b]Turno:[/b] {self.aula_data.get('turno', '-')}\n"
         )
 
     def volver_main(self, *args):
-        """Vuelve a la pantalla principal."""
-        self.manager.current = "main"                 # Cambia al screen 'main'
+        self.manager.current = "main"
+           # Cambia al screen 'main'
 
 # =========================
 # APP PRINCIPAL

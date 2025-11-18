@@ -74,41 +74,60 @@ def get_aulas():
     rows = cursor.fetchall()  # Obtiene todos los registros
     return jsonify(rows)
 
-#DETALLE DE UNA AULA
+# DETALLE DE UNA AULA (incluye turno)
 @app.route("/aula/<int:id>", methods=["GET"])
 def get_aula(id):
-    """Devuelve la información de un aula específica por su ID."""
-    cursor.execute("SELECT * FROM vista_aulas WHERE id = %s", (id,))
+    sql = """
+        SELECT 
+            a.id_aula AS id,
+            a.nombre,
+            a.curso,
+            a.estado,
+            a.especialidad,
+            c.Turno AS turno
+        FROM Aulas a
+        LEFT JOIN Cursos c ON a.id_aula = c.fk_aula
+        WHERE a.id_aula = %s
+        LIMIT 1
+    """
+    cursor.execute(sql, (id,))
     aula = cursor.fetchone()
     if aula:
         return jsonify(aula)
     else:
         return jsonify({"error": "Aula no encontrada"}), 404
 
-#EDITAR AULA
+# EDITAR AULA (incluye actualización de turno)
 @app.route("/aula/<int:id_aula>", methods=["PUT"])
 def editar_aula(id_aula):
-    """Actualiza los datos de un aula."""
     data = request.json
     nombre = data.get("nombre")
     curso = data.get("curso")
     estado = data.get("estado")
     especialidad = data.get("especialidad")
+    turno = data.get("turno")  # NUEVO
 
-    # Validación de campos obligatorios
-    if not nombre or not curso or not estado or not especialidad:
+    if not nombre or not curso or not estado or not especialidad or not turno:
         return jsonify({"error": "Faltan datos del aula"}), 400
 
-    # Actualización en la base de datos
-    sql = """
+    # Actualizar Aulas
+    sql_aula = """
         UPDATE Aulas
         SET nombre = %s, curso = %s, estado = %s, especialidad = %s
         WHERE id_aula = %s
     """
-    cursor.execute(sql, (nombre, curso, estado, especialidad, id_aula))
-    db.commit()
+    cursor.execute(sql_aula, (nombre, curso, estado, especialidad, id_aula))
 
-    return jsonify({"status": "ok", "message": "Aula actualizada correctamente"})
+    # Actualizar Turno en Cursos
+    sql_curso = """
+        UPDATE Cursos
+        SET Turno = %s
+        WHERE fk_aula = %s
+    """
+    cursor.execute(sql_curso, (turno, id_aula))
+
+    db.commit()
+    return jsonify({"status": "ok", "message": "Aula y turno actualizados correctamente"})
 
 #LISTADO DE CURSOS
 @app.route("/cursos", methods=["GET"])
