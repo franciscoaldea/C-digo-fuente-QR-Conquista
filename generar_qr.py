@@ -3,9 +3,11 @@ import os
 
 directorio = os.path.dirname(os.path.abspath(__file__))
 
-API_IP = "172.29.193.115"  # tu IP de WSL
-aula_id = 1
-url = f"http://{API_IP}:5000/aula/{aula_id}"
+API_IP = "127.0.0.1"
+aula_id = 103
+url = f"http://localhost:5000/aula/{aula_id}"
+
+
 
 img = qrcode.make(url)
 
