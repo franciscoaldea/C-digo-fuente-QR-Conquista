@@ -1,12 +1,10 @@
 [app]
 
 # (str) Title of your application
-title = QReconquista
-
-p4a.branch = develop
+title = QRConquista
 
 # (str) Package name
-package.name = QReconquista
+package.name = qrconquista
 
 # (str) Package domain (needed for android/ios packaging)
 package.domain = org.test
@@ -39,7 +37,9 @@ version = 0.1
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy,kivy_garden.zbarcam,pillow,kivymd,pyzbar,opencv-python,pyjnius,cython,jnius
+requirements = python3, pillow, kivy, kivy_garden.zbarcam, kivymd, pyzbar, pyjnius, cython==0.29.33, jnius, filetype, kivy_garden.xcamera
+
+# python-opencv
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
@@ -74,8 +74,7 @@ osx.kivy_version = 1.9.1
 #
 # Android specific
 #
-android.useAndroidX = True
-android.enableJetifier = True
+
 # (bool) Indicate if the application should be fullscreen or not
 fullscreen = 0
 
@@ -98,22 +97,22 @@ fullscreen = 0
 
 # (list) Permissions
 # (See https://python-for-android.readthedocs.io/en/latest/buildoptions/#build-options-1 for all the supported syntaxes and properties)
-android.permissions = CAMERA, INTERNET
+android.permissions = android.permission.INTERNET, android.permission.WRITE_EXTERNAL_STORAGE, android.permission.CAMERA, android.permission.READ_EXTERNAL_STORAGE
 
 # (list) features (adds uses-feature -tags to manifest)
 #android.features = android.hardware.usb.host
 
 # (int) Target Android API, should be as high as possible.
-android.api = 33
+#android.api = 31
 
 # (int) Minimum API your APK / AAB will support.
-android.minapi = 21
+#android.minapi = 21
 
 # (int) Android SDK version to use
 #android.sdk = 20
 
 # (str) Android NDK version to use
-android.ndk = 25b
+#android.ndk = 23b
 
 # (int) Android NDK API to use. This is the minimum API your app will support, it should usually match android.minapi.
 #android.ndk_api = 21
@@ -204,12 +203,12 @@ android.ndk = 25b
 #android.add_resources =
 
 # (list) Gradle dependencies to add
-android.gradle_dependencies = androidx.multidex:multidex:2.0.1, com.journeyapps:zxing-android-embedded:4.3.0@aar	
+#android.gradle_dependencies =
 
 # (bool) Enable AndroidX support. Enable when 'android.gradle_dependencies'
 # contains an 'androidx' package, or any package from Kotlin source.
 # android.enable_androidx requires android.api >= 28
-android.enable_androidx = True
+#android.enable_androidx = True
 
 # (list) add java compile options
 # this can for example be necessary when importing certain java libraries using the 'android.gradle_dependencies' option
@@ -276,7 +275,7 @@ android.enable_androidx = True
 #android.logcat_filters = *:S python:D
 
 # (bool) Android logcat only display log for activity's pid
-#android.logcat_pid_only = alse
+#android.logcat_pid_only = False
 
 # (str) Android additional adb arguments
 #android.adb_args = -H host.docker.internal
@@ -324,7 +323,7 @@ android.allow_backup = True
 #p4a.fork = kivy
 
 # (str) python-for-android branch to use, defaults to master
-#p4a.branch = master
+#p4a.branch = develop
 
 # (str) python-for-android specific commit to use, defaults to HEAD, must be within p4a.branch
 #p4a.commit = HEAD
