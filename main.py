@@ -21,6 +21,7 @@ import logging # módulo estándar para salida de errores
 # CONSTANTES DE CONFIGURACIÓN
 # =========================
 
+# URL base de la API a la que se hacen las peticiones
 # TODO: Esta url si va hardcodeada tiene que ser una ubicación
 # en la web, y para eso habría que hacer un deploy en un servicio
 # de hosting que corra la app Flask.
@@ -29,7 +30,7 @@ import logging # módulo estándar para salida de errores
 # https://kivy-tutoriales.blogspot.com/2025/07/interfaz-movil-para-api-web.html
 # la URL por defecto de la línea que sigue es para pruebas con un servidor en una LAN
 # y por lo tanto correrla sin un servidor en esa dirección va a generar un error
-API_URL = "http://192.168.1.19:5000"            # URL base de la API a la que se hacen las peticiones
+API_URL = "http://alanetkinet29.pythonanywhere.com" # URL en la web para desarrollo
 OPCIONES_ESTADO = ["Libre", "Ocupada", "Cerrada"]  # Estados permitidos para las aulas
 
 # =========================
