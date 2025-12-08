@@ -1,4 +1,3 @@
-
 DROP DATABASE IF EXISTS QRConquista;
 CREATE DATABASE IF NOT EXISTS QRConquista;
 USE QRConquista;
@@ -56,24 +55,13 @@ CREATE TABLE IF NOT EXISTS Cursos (
 
 INSERT INTO Cursos (Turno, especialidad, año, division, horarios, fk_aula)
 VALUES 
-('Mañana', 'Computación', 5, 7, '08:00 - 12:00', 104),
-('Mañana', 'Computación', 5, 8, '13:00 - 17:00', 105),
-('Mañana', 'Mecánica', 5, 1, '18:00 - 22:00', 106);
+('Mañana', 'Computación', 5, 7, '08:00 - 12:00', 101),
+('Mañana', 'Computación', 5, 8, '13:00 - 17:00', 102),
+('Mañana', 'Mecánica', 5, 1, '18:00 - 22:00', 103);
 
 
 
 -- VISTA UNIFICADA PARA LA API
-CREATE OR REPLACE VIEW vista_aulas AS
-SELECT 
-    a.id_aula AS id,
-    a.nombre,
-    a.curso,
-    a.estado,
-    a.especialidad,
-    COUNT(c.id_curso) AS cantidad_cursos,
-    MAX(c.Turno) AS turno
-FROM Aulas a
-LEFT JOIN Cursos c ON a.id_aula = c.fk_aula
-GROUP BY a.id_aula;
-ALTER TABLE aulas ADD COLUMN turno VARCHAR(50);
+CREATE OR REPLACE VIEW vista_aulas AS SELECT a.id_aula AS id, a.nombre, a.curso, a.estado, a.especialidad, COUNT(c.id_curso) AS cantidad_cursos, MAX(c.Turno) AS turno FROM Aulas a LEFT JOIN Cursos c ON a.id_aula = c.fk_aula GROUP BY a.id_aula;
+ALTER TABLE Aulas ADD COLUMN turno VARCHAR(50);
 
