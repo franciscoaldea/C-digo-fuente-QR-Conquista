@@ -1,6 +1,7 @@
 # =========================
 # IMPORTACIONES
 # =========================
+
 import requests                               # Cliente HTTP para comunicarse con la API REST
 from kivymd.app import MDApp                  # Clase base para apps KivyMD
 from kivymd.uix.boxlayout import MDBoxLayout  # Layout en caja (vertical/horizontal) de KivyMD
@@ -14,11 +15,21 @@ from kivy_garden.zbarcam import ZBarCam       # Cámara/lector QR (zbar)
 from kivymd.uix.menu import MDDropdownMenu    # Menú desplegable de KivyMD
 from kivymd.uix.list import OneLineIconListItem, IconLeftWidget  # Items de lista con iconos
 from kivymd.uix.card import MDCard            # Tarjeta visual para mostrar contenido
+import logging # módulo estándar para salida de errores
 
 # =========================
 # CONSTANTES DE CONFIGURACIÓN
 # =========================
-API_URL = "http://localhost:5000"            # URL base de la API a la que se hacen las peticiones
+
+# TODO: Esta url si va hardcodeada tiene que ser una ubicación
+# en la web, y para eso habría que hacer un deploy en un servicio
+# de hosting que corra la app Flask.
+# Como alternativa, se puede implementar una URL editable por una
+# ventana de la app Kivy (ver tutoriales en blog:
+# https://kivy-tutoriales.blogspot.com/2025/07/interfaz-movil-para-api-web.html
+# la URL por defecto de la línea que sigue es para pruebas con un servidor en una LAN
+# y por lo tanto correrla sin un servidor en esa dirección va a generar un error
+API_URL = "http://192.168.1.19:5000"            # URL base de la API a la que se hacen las peticiones
 OPCIONES_ESTADO = ["Libre", "Ocupada", "Cerrada"]  # Estados permitidos para las aulas
 
 # =========================
@@ -49,7 +60,8 @@ class MainScreen(Screen):
         if not self.dialog_login:              # Si el diálogo aún no fue creado, lo construyo
             # Campos de texto para usuario y contraseña
             self.username_field = MDTextField(hint_text="Usuario", required=True)  # Campo usuario
-            self.password_field = MDTextField(hint_text="Contraseña", password=True, required=True)  # Campo contraseña (oculto)
+            # Campo contraseña (oculto)            
+            self.password_field = MDTextField(hint_text="Contraseña", password=True, required=True)
 
             # Contenedor vertical que agrupa los campos dentro del diálogo
             content_box = MDBoxLayout(
@@ -58,7 +70,7 @@ class MainScreen(Screen):
                 orientation="vertical",        # disposición vertical
                 spacing="10dp",                # espacio entre widgets
                 size_hint_y=None,              # altura fija (no proporcional)
-                height="120dp",                # altura específica en dp
+                height="120dp"                 # altura específica en dp
             )
            
             # Creación del diálogo con título, contenido y botones
@@ -66,12 +78,13 @@ class MainScreen(Screen):
                 title="Iniciar sesión (Admin)",# Título del diálogo
                 type="custom",                 # Tipo custom para usar content_cls
                 content_cls=content_box,       # Contenido personalizado (los campos)
-                buttons=[
-                    MDRaisedButton(text="Cancelar", on_release=lambda x: self.dialog_login.dismiss()),  # Botón cancelar cierra diálogo
-                    MDRaisedButton(text="Entrar", on_release=lambda x: self._check_login()),            # Botón entrar llama verificación
-                ],
-            )
-        self.dialog_login.open()                # Abre (muestra) el diálogo
+                # Botón cancelar cierra diálogo
+                # Botón entrar llama verificación
+                buttons=[MDRaisedButton(text="Cancelar",
+                on_release=lambda x: self.dialog_login.dismiss()),
+                    MDRaisedButton(text="Entrar",
+                    on_release=lambda x: self._check_login())])
+        self.dialog_login.open() # Abre (muestra) el diálogo
 
     def _check_login(self):
         """Verifica las credenciales del administrador."""
@@ -459,4 +472,15 @@ class qr_app(MDApp):
 # EJECUCIÓN DE LA APLICACIÓN
 # =========================
 if __name__ == "__main__":
-    qr_app().run()                                  # Inicializa y ejecuta la aplicación KivyMD
+    # Inicializa y ejecuta la aplicación KivyMD
+    # Envolvemos todo en un manejador de fallas y en caso
+    # que tire algo, lo atajamos, usamos el servicio de
+    # salida de depuración, y lo largamos para que la app
+    # no cuelgue
+    # TODO: implementar lógica de depuración más fina
+    try:
+        qr_app().run()
+    except Exception as e:
+        logging.debug("Ocurrió una excepción: %s" % str(e))
+        raise e
+
