@@ -31,6 +31,8 @@ import logging # módulo estándar para salida de errores
 # la URL por defecto de la línea que sigue es para pruebas con un servidor en una LAN
 # y por lo tanto correrla sin un servidor en esa dirección va a generar un error
 API_URL = "http://alanetkinet29.pythonanywhere.com" # URL en la web para desarrollo
+logging.debug("[Depuración] La ruta por defecto a la API_URL es %s" % API_URL)
+
 OPCIONES_ESTADO = ["Libre", "Ocupada", "Cerrada"]  # Estados permitidos para las aulas
 
 # =========================
@@ -96,6 +98,7 @@ class MainScreen(Screen):
 
         try:
             # Petición POST a la ruta /login de la API con las credenciales
+            logging.debug(f"[Depuración] Enviando consulta a {API_URL}/login")
             response = requests.post(f"{API_URL}/login", json=data)
             main_label = self.ids.main_label             # Referencia al label principal (desde kv)
             aulas_container = self.ids.aulas_container   # Referencia al contenedor de aulas (desde kv)
@@ -113,6 +116,7 @@ class MainScreen(Screen):
                 main_label.text = "Usuario o contraseña incorrectos"
         except Exception as e:
             # En caso de error de conexión u otra excepción, mostrar mensaje de error
+            logging.debug("[depuración] Ocurrió una excepción: %s" % str(e))
             self.ids.main_label.text = f"Error de conexión: {e}"
 
     # -------------------------
@@ -125,6 +129,7 @@ class MainScreen(Screen):
 
         try:
             # Petición GET a la ruta /aulas para obtener todas las aulas
+            logging.debug(f"[Depuración] Enviando consulta a {API_URL}/aulas")
             response = requests.get(f"{API_URL}/aulas")
             if response.status_code == 200:
                 self.aulas = response.json()         # Guardar el JSON devuelto en self.aulas
@@ -292,6 +297,7 @@ class MainScreen(Screen):
                 "especialidad": nueva_especialidad
             }
             # Enviar petición PUT a la API para persistir cambios
+            logging.debug(f"[Depuración] Enviando consulta a {API_URL}/aula/{aula['id']}")
             requests.put(f"{API_URL}/aula/{aula['id']}", json=data)
         except Exception:
             # Silenciar excepciones en este bloque (mejor loguearlas en producción)
@@ -353,6 +359,7 @@ class ScannerScreen(Screen):
         if self.zbarcam.symbols:                      # Si la cámara detectó símbolos (QR)
             qr_data = self.zbarcam.symbols[0].data.decode("utf-8")  # Tomar el primer símbolo y decodificar bytes a string
             self.label_info.text = f"Código detectado: {qr_data}"  # Mostrar código en el label
+            logging.debug("La cadena del QR es: %s" % qr_data)
 
             # Evitar lecturas repetidas: cancelar el evento y detener la cámara
             Clock.unschedule(self.event)
@@ -364,7 +371,13 @@ class ScannerScreen(Screen):
         # Si el contenido es una URL que apunta a /aula/, intentar obtener los datos
         if data.startswith("http://") and "/aula/" in data:
             try:
-                response = requests.get(data)        # Petición GET a la URL extraída del QR
+                # Extraigo el entero que corresponde al aula solicitada
+                # y lo compongo con la url configurada para la api
+                # TODO: los qr tienen que especificar la subURL, no
+                # la URL completa porque puede cambiar el dominio de la api
+                url = API_URL + "/aula/" + data.split("/")[-1]
+                logging.debug("La url a consultar es: %s" % url)
+                response = requests.get(url)        # Petición GET a la URL extraída del QR
                 if response.status_code == 200:
                     aula = response.json()           # Obtener datos JSON del aula
 
@@ -388,6 +401,7 @@ class ScannerScreen(Screen):
                     ).open()
             except Exception as e:
                 # En caso de excepción de red, mostrar diálogo con el error
+                logging.debug("[Depuración] Ocurrió una excepción: %s" % str(e))
                 MDDialog(title="Error de conexión", text=str(e)).open()
         else:
             # Si el QR no contiene la URL esperada, mostrar diálogo indicando que no se reconoció
@@ -482,6 +496,6 @@ if __name__ == "__main__":
     try:
         qr_app().run()
     except Exception as e:
-        logging.debug("Ocurrió una excepción: %s" % str(e))
+        logging.debug("[depuración] Ocurrió una excepción: %s" % str(e))
         raise e
 
